@@ -393,6 +393,11 @@
   <script>
     const API_BASE = 'https://ivnbieb.vercel.app';
 
+    // Baserow Single Select velden zijn objecten: { value: 'beschikbaar' }
+    function boekStatus(boek) {
+      return boek.status?.value || boek.status || '';
+    }
+
     // Subcategorieën per hoofdcategorie
     const SUBCATS = {
       'IVN en educatie (I)':            ['I. Cursussen', 'I. Educatie', 'I. Onderzoek', 'I. Vereniging'],
@@ -428,7 +433,7 @@
       return alleBoeken.filter((b) => {
         if (cat && b.categorie !== cat) return false;
         if (subcat && b.subcategorie !== subcat) return false;
-        if (statusFilter && b.status !== statusFilter) return false;
+        if (statusFilter && boekStatus(b) !== statusFilter) return false;
 
         if (zoekterm) {
           const haystack = [b.titel, b.subtitel, b.auteur, b.zoektermen, b.subcategorie]
@@ -483,8 +488,8 @@
       body.appendChild(auteur);
 
       const badge = document.createElement('span');
-      badge.className = `status-badge status-${boek.status}`;
-      badge.textContent = boek.status === 'beschikbaar' ? 'Beschikbaar' : 'Uitgeleend';
+      badge.className = `status-badge status-${boekStatus(boek)}`;
+      badge.textContent = boekStatus(boek) === 'beschikbaar' ? 'Beschikbaar' : 'Uitgeleend';
       body.appendChild(badge);
 
       kaart.appendChild(body);
@@ -590,8 +595,8 @@
       const badgeWrap = document.createElement('div');
       badgeWrap.style.marginTop = '8px';
       const badge = document.createElement('span');
-      badge.className = `status-badge status-${boek.status}`;
-      badge.textContent = boek.status === 'beschikbaar' ? 'Beschikbaar' : 'Uitgeleend';
+      badge.className = `status-badge status-${boekStatus(boek)}`;
+      badge.textContent = boekStatus(boek) === 'beschikbaar' ? 'Beschikbaar' : 'Uitgeleend';
       badgeWrap.appendChild(badge);
       meta.appendChild(badgeWrap);
 
@@ -606,7 +611,7 @@
       const lenLink = document.createElement('a');
       lenLink.className = 'knop-lenen';
       lenLink.href = `lenen.html?id=${encodeURIComponent(boek.id)}`;
-      lenLink.textContent = boek.status === 'beschikbaar' ? 'Boek lenen →' : 'Boek inleveren →';
+      lenLink.textContent = boekStatus(boek) === 'beschikbaar' ? 'Boek lenen →' : 'Boek inleveren →';
       acties.appendChild(lenLink);
 
       inhoud.appendChild(acties);

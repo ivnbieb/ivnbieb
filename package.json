@@ -2,6 +2,7 @@
   "name": "ivnbieb",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "covers": "node scripts/fetch_covers.js"
   },

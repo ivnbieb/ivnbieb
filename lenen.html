@@ -206,6 +206,11 @@
     const API_BASE = 'https://ivnbieb.vercel.app';
     const API_URL = `${API_BASE}/api/boek`;
 
+    // Baserow Single Select velden zijn objecten: { value: 'beschikbaar' }
+    function boekStatus(boek) {
+      return boek.status?.value || boek.status || '';
+    }
+
     function veiligIsbn(isbn) {
       const schoon = (isbn || '').replace(/[\s-]/g, '');
       return /^[0-9]{9,13}$/.test(schoon) ? schoon : null;
@@ -259,7 +264,7 @@
 
     function bouwFormulier(boek) {
       const lid = leesLocalStorage();
-      const isUitgeleend = boek.status === 'uitgeleend';
+      const isUitgeleend = boekStatus(boek) === 'uitgeleend';
 
       const kaart = document.getElementById('kaart');
       kaart.innerHTML = '';
@@ -284,8 +289,8 @@
       }
 
       const badge = document.createElement('span');
-      badge.className = `status-badge status-${boek.status}`;
-      badge.textContent = boek.status === 'beschikbaar' ? 'Beschikbaar' : 'Uitgeleend';
+      badge.className = `status-badge status-${boekStatus(boek)}`;
+      badge.textContent = boekStatus(boek) === 'beschikbaar' ? 'Beschikbaar' : 'Uitgeleend';
       tekst.appendChild(badge);
 
       boekInfo.appendChild(tekst);

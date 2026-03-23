@@ -7,22 +7,7 @@ const TABLE_BOEKEN = process.env.BASEROW_TABLE_BOEKEN;
 const TABLE_UITLENINGEN = process.env.BASEROW_TABLE_UITLENINGEN;
 
 // Toegestane origins (GitHub Pages + lokaal testen)
-const ALLOWED_ORIGINS = [
-  'https://imartzen.github.io',
-  'http://localhost:8080',
-  'http://127.0.0.1:8080',
-  'http://localhost:5500',
-  'http://127.0.0.1:5500',
-];
-
-function setCors(req, res) {
-  const origin = req.headers.origin || '';
-  if (ALLOWED_ORIGINS.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-}
+import { setCors } from './_cors.js';
 
 // Input validatie
 function valideerEmail(email) {
@@ -112,10 +97,13 @@ export default async function handler(req, res) {
 
   try {
     // Haal boek op
-    const boek = await baserowGet(`/database/rows/table/${TABLE_BOEKEN}/${Number(boekId)}/`);
+    const boek = await baserowGet(`/database/rows/table/${TABLE_BOEKEN}/${Number(boekId)}/?user_field_names=true`);
+
+    // status is een Single Select object in Baserow: { value: 'beschikbaar' }
+    const boekStatus = boek.status?.value || boek.status;
 
     if (actie === 'lenen') {
-      if (boek.status !== 'beschikbaar') {
+      if (boekStatus !== 'beschikbaar') {
         res.status(409).json({ fout: 'Dit boek is momenteel niet beschikbaar' });
         return;
       }

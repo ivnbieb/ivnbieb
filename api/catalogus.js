@@ -5,27 +5,11 @@ const BASEROW_API = 'https://api.baserow.io/api';
 const TOKEN = process.env.BASEROW_TOKEN_READONLY;
 const TABLE_BOEKEN = process.env.BASEROW_TABLE_BOEKEN;
 
-const ALLOWED_ORIGINS = [
-  'https://imartzen.github.io',
-  'http://localhost:8080',
-  'http://127.0.0.1:8080',
-  'http://localhost:5500',
-  'http://127.0.0.1:5500',
-];
-
-function setCors(req, res) {
-  const origin = req.headers.origin || '';
-  if (ALLOWED_ORIGINS.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  // Cache 5 minuten in browser, 1 minuut op Vercel edge
-  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
-}
+import { setCors } from './_cors.js';
 
 export default async function handler(req, res) {
   setCors(req, res);
+  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
 
   if (req.method === 'OPTIONS') {
     res.status(204).end();
@@ -46,7 +30,7 @@ export default async function handler(req, res) {
     }
     try {
       const boekRes = await fetch(
-        `${BASEROW_API}/database/rows/table/${TABLE_BOEKEN}/${id}/`,
+        `${BASEROW_API}/database/rows/table/${TABLE_BOEKEN}/${id}/?user_field_names=true`,
         { headers: { Authorization: `Token ${TOKEN}` } }
       );
       if (!boekRes.ok) {
@@ -65,7 +49,7 @@ export default async function handler(req, res) {
   // Alle boeken ophalen (voor index.html)
   try {
     const boeken = [];
-    let url = `${BASEROW_API}/database/rows/table/${TABLE_BOEKEN}/?size=300&order_by=titel`;
+    let url = `${BASEROW_API}/database/rows/table/${TABLE_BOEKEN}/?size=300&user_field_names=true`;
 
     while (url) {
       const pageRes = await fetch(url, {
