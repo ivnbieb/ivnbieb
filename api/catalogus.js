@@ -55,7 +55,10 @@ export default async function handler(req, res) {
       const pageRes = await fetch(url, {
         headers: { Authorization: `Token ${TOKEN}` },
       });
-      if (!pageRes.ok) throw new Error(`Baserow fout: ${pageRes.status}`);
+      if (!pageRes.ok) {
+        const body = await pageRes.text();
+        throw new Error(`Baserow fout: ${pageRes.status} - ${body}`);
+      }
       const data = await pageRes.json();
       boeken.push(...data.results);
       url = data.next || null;
