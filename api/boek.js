@@ -108,7 +108,7 @@ export default async function handler(req, res) {
       }
 
       // Maak uitlening aan
-      await baserowPost(`/database/rows/table/${TABLE_UITLENINGEN}/`, {
+      await baserowPost(`/database/rows/table/${TABLE_UITLENINGEN}/?user_field_names=true`, {
         boek_id: Number(boekId),
         lid_naam: naam.trim(),
         lid_email: email.toLowerCase().trim(),
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
       });
 
       // Update boekstatus
-      await baserowPatch(`/database/rows/table/${TABLE_BOEKEN}/${Number(boekId)}/`, {
+      await baserowPatch(`/database/rows/table/${TABLE_BOEKEN}/${Number(boekId)}/?user_field_names=true`, {
         status: 'uitgeleend',
       });
 
@@ -126,7 +126,7 @@ export default async function handler(req, res) {
     } else {
       // inleveren: zoek open uitlening voor dit boek + email
       const uitleningen = await baserowGet(
-        `/database/rows/table/${TABLE_UITLENINGEN}/?filter__boek_id__equal=${Number(boekId)}&filter__lid_email__equal=${encodeURIComponent(email.toLowerCase().trim())}&filter__uitlening_status__equal=open`
+        `/database/rows/table/${TABLE_UITLENINGEN}/?user_field_names=true&filter__boek_id__equal=${Number(boekId)}&filter__lid_email__equal=${encodeURIComponent(email.toLowerCase().trim())}&filter__uitlening_status__equal=open`
       );
 
       if (!uitleningen.results || uitleningen.results.length === 0) {
@@ -137,13 +137,13 @@ export default async function handler(req, res) {
       const uitlening = uitleningen.results[0];
 
       // Sluit uitlening
-      await baserowPatch(`/database/rows/table/${TABLE_UITLENINGEN}/${uitlening.id}/`, {
+      await baserowPatch(`/database/rows/table/${TABLE_UITLENINGEN}/${uitlening.id}/?user_field_names=true`, {
         datum_inlever: new Date().toISOString().slice(0, 10),
         uitlening_status: 'gesloten',
       });
 
       // Update boekstatus
-      await baserowPatch(`/database/rows/table/${TABLE_BOEKEN}/${Number(boekId)}/`, {
+      await baserowPatch(`/database/rows/table/${TABLE_BOEKEN}/${Number(boekId)}/?user_field_names=true`, {
         status: 'beschikbaar',
       });
 
