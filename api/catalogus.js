@@ -49,7 +49,7 @@ export default async function handler(req, res) {
   // Alle boeken ophalen (voor index.html)
   try {
     const boeken = [];
-    let url = `${BASEROW_API}/database/rows/table/${TABLE_BOEKEN}/?size=300&user_field_names=true`;
+    let url = `${BASEROW_API}/database/rows/table/${TABLE_BOEKEN}/?size=200&user_field_names=true`;
 
     while (url) {
       const pageRes = await fetch(url, {
