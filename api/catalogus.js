@@ -1,11 +1,11 @@
 // Vercel serverless function: boeken ophalen uit Baserow
 // Read token zit in Vercel env vars, nooit in de frontend.
 
+import { setCors } from './_cors.js';
+
 const BASEROW_API = 'https://api.baserow.io/api';
 const TOKEN = process.env.BASEROW_TOKEN_READONLY;
 const TABLE_BOEKEN = process.env.BASEROW_TABLE_BOEKEN;
-
-import { setCors } from './_cors.js';
 
 export default async function handler(req, res) {
   setCors(req, res);

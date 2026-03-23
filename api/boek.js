@@ -1,13 +1,12 @@
 // Vercel serverless function: lenen en inleveren
 // Alle gevoelige tokens zitten in Vercel environment variables, nooit in de frontend.
 
+import { setCors } from './_cors.js';
+
 const BASEROW_API = 'https://api.baserow.io/api';
 const TOKEN = process.env.BASEROW_TOKEN;
 const TABLE_BOEKEN = process.env.BASEROW_TABLE_BOEKEN;
 const TABLE_UITLENINGEN = process.env.BASEROW_TABLE_UITLENINGEN;
-
-// Toegestane origins (GitHub Pages + lokaal testen)
-import { setCors } from './_cors.js';
 
 // Input validatie
 function valideerEmail(email) {
