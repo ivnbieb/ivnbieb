@@ -112,8 +112,7 @@ export default async function handler(req, res) {
         boek_id: Number(boekId),
         lid_naam: naam.trim(),
         lid_email: email.toLowerCase().trim(),
-        datum_uitleen: new Date().toISOString().slice(0, 10),
-        uitlening_status: 'open',
+        uitgeleend_op: new Date().toISOString().slice(0, 10),
       });
 
       // Update boekstatus
@@ -126,7 +125,7 @@ export default async function handler(req, res) {
     } else {
       // inleveren: zoek open uitlening voor dit boek + email
       const uitleningen = await baserowGet(
-        `/database/rows/table/${TABLE_UITLENINGEN}/?user_field_names=true&filter__boek_id__equal=${Number(boekId)}&filter__lid_email__equal=${encodeURIComponent(email.toLowerCase().trim())}&filter__uitlening_status__equal=open`
+        `/database/rows/table/${TABLE_UITLENINGEN}/?user_field_names=true&filter__boek_id__equal=${Number(boekId)}&filter__lid_email__equal=${encodeURIComponent(email.toLowerCase().trim())}&filter__ingeleverd_op__empty=true`
       );
 
       if (!uitleningen.results || uitleningen.results.length === 0) {
@@ -138,8 +137,7 @@ export default async function handler(req, res) {
 
       // Sluit uitlening
       await baserowPatch(`/database/rows/table/${TABLE_UITLENINGEN}/${uitlening.id}/?user_field_names=true`, {
-        datum_inlever: new Date().toISOString().slice(0, 10),
-        uitlening_status: 'gesloten',
+        ingeleverd_op: new Date().toISOString().slice(0, 10),
       });
 
       // Update boekstatus
