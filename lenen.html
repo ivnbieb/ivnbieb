@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IVN Bibliotheek – Boek lenen of inleveren</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f4f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+    }
+
+    header {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    header img { height: 40px; }
+
+    header h1 {
+      font-size: 1.1rem;
+      color: #2d5a27;
+      font-weight: 600;
+    }
+
+    .kaart {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    .boek-info {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #e8f0e8;
+    }
+
+    .boek-cover {
+      width: 72px;
+      height: 96px;
+      object-fit: cover;
+      border-radius: 4px;
+      flex-shrink: 0;
+      background: #e8f0e8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+
+    .boek-cover-placeholder {
+      width: 72px;
+      height: 96px;
+      background: #e8f0e8;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      flex-shrink: 0;
+    }
+
+    .boek-tekst h2 {
+      font-size: 1rem;
+      color: #1a1a1a;
+      line-height: 1.3;
+      margin-bottom: 4px;
+    }
+
+    .boek-tekst .auteur {
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .status-beschikbaar { background: #d4edda; color: #155724; }
+    .status-uitgeleend  { background: #f8d7da; color: #721c24; }
+
+    .sectie-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #2d5a27;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .lid-veld {
+      margin-bottom: 16px;
+    }
+
+    .lid-veld label {
+      display: block;
+      font-size: 0.85rem;
+      color: #444;
+      margin-bottom: 4px;
+    }
+
+    .lid-veld input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    .lid-veld input:focus {
+      outline: none;
+      border-color: #2d5a27;
+    }
+
+    .knop-rij {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .knop {
+      flex: 1;
+      padding: 13px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .knop:hover { opacity: 0.88; }
+    .knop:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .knop-lenen     { background: #2d5a27; color: white; }
+    .knop-inleveren { background: #5a7a2d; color: white; }
+
+    .bericht {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .bericht-ok    { background: #d4edda; color: #155724; }
+    .bericht-fout  { background: #f8d7da; color: #721c24; }
+
+    .laden {
+      text-align: center;
+      color: #666;
+      padding: 40px 0;
+    }
+
+    .terug {
+      margin-top: 20px;
+      font-size: 0.85rem;
+      color: #2d5a27;
+      text-decoration: none;
+    }
+
+    .terug:hover { text-decoration: underline; }
+
+    .onthoud-info {
+      font-size: 0.78rem;
+      color: #888;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>IVN Bibliotheek Son en Breugel</h1>
+  </header>
+
+  <div class="kaart" id="kaart">
+    <div class="laden" id="laden">Boek laden…</div>
+  </div>
+
+  <a href="index.html" class="terug">← Terug naar catalogus</a>
+
+  <script>
+    const API_BASE = 'https://ivnbieb.vercel.app';
+    const API_URL = `${API_BASE}/api/boek`;
+
+    function veiligIsbn(isbn) {
+      const schoon = (isbn || '').replace(/[\s-]/g, '');
+      return /^[0-9]{9,13}$/.test(schoon) ? schoon : null;
+    }
+
+    function leesLocalStorage() {
+      try {
+        return {
+          naam: localStorage.getItem('ivnbieb_naam') || '',
+          email: localStorage.getItem('ivnbieb_email') || '',
+        };
+      } catch {
+        return { naam: '', email: '' };
+      }
+    }
+
+    function slaOpLocalStorage(naam, email) {
+      try {
+        localStorage.setItem('ivnbieb_naam', naam);
+        localStorage.setItem('ivnbieb_email', email);
+      } catch { /* geen localStorage beschikbaar */ }
+    }
+
+    function toonBericht(tekst, type) {
+      const el = document.getElementById('bericht');
+      if (!el) return;
+      el.textContent = tekst;
+      el.className = `bericht bericht-${type}`;
+      el.style.display = 'block';
+    }
+
+    function maakCoverEl(coverUrl) {
+      if (coverUrl) {
+        const img = document.createElement('img');
+        img.className = 'boek-cover';
+        img.alt = '';
+        img.onerror = () => {
+          const ph = document.createElement('div');
+          ph.className = 'boek-cover-placeholder';
+          ph.textContent = '📗';
+          img.replaceWith(ph);
+        };
+        img.src = coverUrl; // cover_url komt uit Baserow, niet van gebruiker
+        return img;
+      }
+      const ph = document.createElement('div');
+      ph.className = 'boek-cover-placeholder';
+      ph.textContent = '📗';
+      return ph;
+    }
+
+    function bouwFormulier(boek) {
+      const lid = leesLocalStorage();
+      const isUitgeleend = boek.status === 'uitgeleend';
+
+      const kaart = document.getElementById('kaart');
+      kaart.innerHTML = '';
+
+      // Boek info
+      const boekInfo = document.createElement('div');
+      boekInfo.className = 'boek-info';
+      boekInfo.appendChild(maakCoverEl(boek.cover_url));
+
+      const tekst = document.createElement('div');
+      tekst.className = 'boek-tekst';
+
+      const titel = document.createElement('h2');
+      titel.textContent = boek.titel;
+      tekst.appendChild(titel);
+
+      if (boek.auteur) {
+        const auteur = document.createElement('div');
+        auteur.className = 'auteur';
+        auteur.textContent = boek.auteur;
+        tekst.appendChild(auteur);
+      }
+
+      const badge = document.createElement('span');
+      badge.className = `status-badge status-${boek.status}`;
+      badge.textContent = boek.status === 'beschikbaar' ? 'Beschikbaar' : 'Uitgeleend';
+      tekst.appendChild(badge);
+
+      boekInfo.appendChild(tekst);
+      kaart.appendChild(boekInfo);
+
+      // Lidgegevens label
+      const label = document.createElement('div');
+      label.className = 'sectie-label';
+      label.textContent = 'Jouw gegevens';
+      kaart.appendChild(label);
+
+      // Naam veld
+      const naamVeld = document.createElement('div');
+      naamVeld.className = 'lid-veld';
+      const naamLabel = document.createElement('label');
+      naamLabel.textContent = 'Naam';
+      naamLabel.htmlFor = 'inp-naam';
+      const naamInput = document.createElement('input');
+      naamInput.type = 'text';
+      naamInput.id = 'inp-naam';
+      naamInput.autocomplete = 'name';
+      naamInput.maxLength = 100;
+      naamInput.value = lid.naam;
+      naamVeld.appendChild(naamLabel);
+      naamVeld.appendChild(naamInput);
+      kaart.appendChild(naamVeld);
+
+      // Email veld
+      const emailVeld = document.createElement('div');
+      emailVeld.className = 'lid-veld';
+      const emailLabel = document.createElement('label');
+      emailLabel.textContent = 'E-mailadres';
+      emailLabel.htmlFor = 'inp-email';
+      const emailInput = document.createElement('input');
+      emailInput.type = 'email';
+      emailInput.id = 'inp-email';
+      emailInput.autocomplete = 'email';
+      emailInput.maxLength = 200;
+      emailInput.value = lid.email;
+      const onthoudInfo = document.createElement('div');
+      onthoudInfo.className = 'onthoud-info';
+      onthoudInfo.textContent = 'Je e-mail wordt alleen op deze telefoon opgeslagen.';
+      emailVeld.appendChild(emailLabel);
+      emailVeld.appendChild(emailInput);
+      emailVeld.appendChild(onthoudInfo);
+      kaart.appendChild(emailVeld);
+
+      // Bericht element
+      const bericht = document.createElement('div');
+      bericht.id = 'bericht';
+      bericht.className = 'bericht';
+      kaart.appendChild(bericht);
+
+      // Knoppen
+      const knopRij = document.createElement('div');
+      knopRij.className = 'knop-rij';
+
+      if (!isUitgeleend) {
+        const knopLenen = document.createElement('button');
+        knopLenen.className = 'knop knop-lenen';
+        knopLenen.textContent = 'Boek lenen';
+        knopLenen.addEventListener('click', () => verstuurActie('lenen', naamInput, emailInput, knopLenen));
+        knopRij.appendChild(knopLenen);
+      } else {
+        const knopInlever = document.createElement('button');
+        knopInlever.className = 'knop knop-inleveren';
+        knopInlever.textContent = 'Boek inleveren';
+        knopInlever.addEventListener('click', () => verstuurActie('inleveren', naamInput, emailInput, knopInlever));
+        knopRij.appendChild(knopInlever);
+      }
+
+      kaart.appendChild(knopRij);
+    }
+
+    async function verstuurActie(actie, naamInput, emailInput, knop) {
+      const naam = naamInput.value.trim();
+      const email = emailInput.value.trim().toLowerCase();
+
+      if (naam.length < 2) {
+        toonBericht('Vul je naam in (minimaal 2 tekens).', 'fout');
+        naamInput.focus();
+        return;
+      }
+
+      if (!/^[^\s@]{1,64}@[^\s@]{1,255}$/.test(email)) {
+        toonBericht('Vul een geldig e-mailadres in.', 'fout');
+        emailInput.focus();
+        return;
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const boekId = params.get('id');
+
+      knop.disabled = true;
+      knop.textContent = 'Even geduld…';
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            boekId: Number(boekId),
+            naam,
+            email,
+            actie,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.ok) {
+          slaOpLocalStorage(naam, email);
+          toonBericht(data.bericht, 'ok');
+          knop.disabled = true;
+          knop.textContent = actie === 'lenen' ? '✓ Geleend' : '✓ Ingeleverd';
+        } else {
+          toonBericht(data.fout || 'Er ging iets mis.', 'fout');
+          knop.disabled = false;
+          knop.textContent = actie === 'lenen' ? 'Boek lenen' : 'Boek inleveren';
+        }
+      } catch {
+        toonBericht('Geen verbinding. Controleer je internet en probeer opnieuw.', 'fout');
+        knop.disabled = false;
+        knop.textContent = actie === 'lenen' ? 'Boek lenen' : 'Boek inleveren';
+      }
+    }
+
+    async function laadBoek() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+
+      if (!id || !/^\d+$/.test(id)) {
+        document.getElementById('laden').textContent = 'Geen geldig boek gevonden. Scan de NFC sticker opnieuw.';
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/catalogus?id=${encodeURIComponent(id)}`);
+
+        if (!res.ok) {
+          document.getElementById('laden').textContent = 'Boek niet gevonden.';
+          return;
+        }
+
+        const boek = await res.json();
+        bouwFormulier(boek);
+
+      } catch {
+        document.getElementById('laden').textContent = 'Kan boek niet laden. Controleer je internet.';
+      }
+    }
+
+    laadBoek();
+  </script>
+</body>
+</html>

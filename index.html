@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IVN Bibliotheek Son en Breugel</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f4f0;
+      color: #1a1a1a;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #2d5a27;
+      color: white;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    header p {
+      font-size: 0.85rem;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+
+    /* ── Zoekbalk ── */
+    .zoek-sectie {
+      background: white;
+      border-bottom: 1px solid #dde8dd;
+      padding: 16px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .zoek-rij {
+      display: flex;
+      gap: 10px;
+      max-width: 960px;
+      margin: 0 auto 12px;
+    }
+
+    .zoek-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1.5px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    .zoek-input:focus {
+      outline: none;
+      border-color: #2d5a27;
+    }
+
+    .filter-rij {
+      display: flex;
+      gap: 10px;
+      max-width: 960px;
+      margin: 0 auto;
+      flex-wrap: wrap;
+    }
+
+    .filter-select {
+      padding: 8px 12px;
+      border: 1.5px solid #ccc;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: white;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .filter-select:focus {
+      outline: none;
+      border-color: #2d5a27;
+    }
+
+    .status-filter {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .status-knop {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid #ccc;
+      background: white;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .status-knop.actief {
+      border-color: #2d5a27;
+      background: #2d5a27;
+      color: white;
+    }
+
+    /* ── Resultaten teller ── */
+    .resultaten-info {
+      max-width: 960px;
+      margin: 12px auto 0;
+      padding: 0 24px;
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    /* ── Grid ── */
+    .boeken-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 16px;
+      padding: 20px 24px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    /* ── Boekkaart ── */
+    .boek-kaart {
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .boek-kaart:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+    }
+
+    .boek-kaart-cover {
+      height: 140px;
+      background: #e8f0e8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      overflow: hidden;
+    }
+
+    .boek-kaart-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .boek-kaart-body {
+      padding: 10px 12px 12px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .boek-kaart-titel {
+      font-size: 0.85rem;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .boek-kaart-auteur {
+      font-size: 0.75rem;
+      color: #666;
+      margin-bottom: 8px;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      flex: 1;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .status-beschikbaar { background: #d4edda; color: #155724; }
+    .status-uitgeleend  { background: #f8d7da; color: #721c24; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 14px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 24px;
+      position: relative;
+    }
+
+    .modal-sluit {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      cursor: pointer;
+      color: #666;
+      line-height: 1;
+    }
+
+    .modal-boek-info {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .modal-cover {
+      width: 80px;
+      height: 108px;
+      object-fit: cover;
+      border-radius: 4px;
+      background: #e8f0e8;
+      flex-shrink: 0;
+    }
+
+    .modal-cover-ph {
+      width: 80px;
+      height: 108px;
+      background: #e8f0e8;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      flex-shrink: 0;
+    }
+
+    .modal-titel { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+    .modal-subtitel { font-size: 0.85rem; color: #555; margin-bottom: 4px; font-style: italic; }
+    .modal-auteur { font-size: 0.9rem; color: #444; margin-bottom: 8px; }
+    .modal-meta { font-size: 0.8rem; color: #666; line-height: 1.8; }
+
+    .modal-acties {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid #e8f0e8;
+      display: flex;
+      gap: 10px;
+    }
+
+    .knop-lenen {
+      flex: 1;
+      padding: 12px;
+      background: #2d5a27;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+      transition: opacity 0.2s;
+    }
+
+    .knop-lenen:hover { opacity: 0.88; }
+
+    /* ── Laden / leeg ── */
+    .laden-bericht {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
+      grid-column: 1 / -1;
+    }
+
+    .laden-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #e8f0e8;
+      border-top-color: #2d5a27;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      .boeken-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 16px; }
+      .zoek-sectie { padding: 12px 16px; }
+      .resultaten-info { padding: 0 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <h1>IVN Bibliotheek Son en Breugel</h1>
+      <p>Zoek en leen een boek via NFC</p>
+    </div>
+  </header>
+
+  <div class="zoek-sectie">
+    <div class="zoek-rij">
+      <input
+        type="search"
+        class="zoek-input"
+        id="zoekInput"
+        placeholder="Zoek op titel, auteur, thema…"
+        autocomplete="off"
+        maxlength="200"
+      />
+    </div>
+    <div class="filter-rij">
+      <select class="filter-select" id="catFilter">
+        <option value="">Alle categorieën</option>
+        <option value="IVN en educatie (I)">IVN en educatie</option>
+        <option value="Algemeen (A)">Algemeen</option>
+        <option value="Fauna (Fa)">Fauna</option>
+        <option value="Flora (Fl)">Flora</option>
+        <option value="Landschap, Bodem en Geografie (L)">Landschap, Bodem en Geografie</option>
+        <option value="Gebieden (G)">Gebieden</option>
+        <option value="Mens en natuur (M)">Mens en natuur</option>
+        <option value="Kaarten en gidsen (K)">Kaarten en gidsen</option>
+      </select>
+
+      <select class="filter-select" id="subcatFilter" disabled>
+        <option value="">Alle subcategorieën</option>
+      </select>
+
+      <div class="status-filter">
+        <button class="status-knop actief" data-status="">Alles</button>
+        <button class="status-knop" data-status="beschikbaar">Beschikbaar</button>
+        <button class="status-knop" data-status="uitgeleend">Uitgeleend</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="resultaten-info" id="resultatenInfo"></div>
+
+  <main>
+    <div class="boeken-grid" id="boekenGrid">
+      <div class="laden-bericht">
+        <div class="laden-spinner"></div>
+        <div>Boeken laden…</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true">
+    <div class="modal" id="modal">
+      <button class="modal-sluit" id="modalSluit" aria-label="Sluiten">✕</button>
+      <div id="modalInhoud"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://ivnbieb.vercel.app';
+
+    // Subcategorieën per hoofdcategorie
+    const SUBCATS = {
+      'IVN en educatie (I)':            ['I. Cursussen', 'I. Educatie', 'I. Onderzoek', 'I. Vereniging'],
+      'Algemeen (A)':                   ['A. Algemeen', 'A. Biologie', 'A. Encyclopedie', 'A. Natuurgids', 'A. Wetenschap', 'A. Wet en regelgeving'],
+      'Fauna (Fa)':                     ['Fa. Algemeen', 'Fa. Bodemdieren', 'Fa. Insecten', 'Fa. Reptielen en amfibiën', 'Fa. Vogels', 'Fa. Zoetwater dieren', 'Fa. Zoogdieren', 'Fa. Zoutwater dieren'],
+      'Flora (Fl)':                     ['Fl. Algemeen', 'Fl. Bomen en heesters', 'Fl. Mossen en varens', 'Fl. Planten', 'Fl. Schimmels en paddestoelen'],
+      'Landschap, Bodem en Geografie (L)': ['L. Algemeen', 'L. Biodiversiteit', 'L. Ecologie en ecosysteem', 'L. Natuurbeheer', 'L. Waterbeheer'],
+      'Gebieden (G)':                   ['G. Brabant', 'G. Overige', 'G. Son en Breugel'],
+      'Mens en natuur (M)':             ['M. Biodiversiteit', 'M. Gezondheid', 'M. Kinderen', 'M. Klimaatverandering', 'M. Landbouw', 'M. Milieu- en energievraagstuk', 'M. Verhalen', 'M. Verstedelijking'],
+      'Kaarten en gidsen (K)':          ['K. Natuurgidsen', 'K. Topografie', 'K. Wandelgidsen', 'K. Zoekkaarten'],
+    };
+
+    let alleBoeken = [];
+    let huidigBoek = null;
+    let statusFilter = '';
+
+    // ── Data laden ────────────────────────────────────────────────
+
+    async function laadAlleBoeken() {
+      const res = await fetch(`${API_BASE}/api/catalogus`);
+      if (!res.ok) throw new Error(`Catalogus fout: ${res.status}`);
+      const data = await res.json();
+      return data.boeken;
+    }
+
+    // ── Filteren & zoeken ──────────────────────────────────────────
+
+    function filterBoeken() {
+      const zoekterm = document.getElementById('zoekInput').value.trim().toLowerCase();
+      const cat = document.getElementById('catFilter').value;
+      const subcat = document.getElementById('subcatFilter').value;
+
+      return alleBoeken.filter((b) => {
+        if (cat && b.categorie !== cat) return false;
+        if (subcat && b.subcategorie !== subcat) return false;
+        if (statusFilter && b.status !== statusFilter) return false;
+
+        if (zoekterm) {
+          const haystack = [b.titel, b.subtitel, b.auteur, b.zoektermen, b.subcategorie]
+            .filter(Boolean).join(' ').toLowerCase();
+          if (!haystack.includes(zoekterm)) return false;
+        }
+
+        return true;
+      });
+    }
+
+    // ── Renderen ──────────────────────────────────────────────────
+
+    function maakCoverKaart(coverUrl) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'boek-kaart-cover';
+
+      if (coverUrl) {
+        const img = document.createElement('img');
+        img.alt = '';
+        img.loading = 'lazy';
+        img.onerror = () => {
+          img.remove();
+          wrapper.textContent = '📗';
+        };
+        img.src = coverUrl;
+        wrapper.appendChild(img);
+      } else {
+        wrapper.textContent = '📗';
+      }
+
+      return wrapper;
+    }
+
+    function maakBoekKaart(boek) {
+      const kaart = document.createElement('div');
+      kaart.className = 'boek-kaart';
+
+      kaart.appendChild(maakCoverKaart(boek.cover_url));
+
+      const body = document.createElement('div');
+      body.className = 'boek-kaart-body';
+
+      const titel = document.createElement('div');
+      titel.className = 'boek-kaart-titel';
+      titel.textContent = boek.titel;
+      body.appendChild(titel);
+
+      const auteur = document.createElement('div');
+      auteur.className = 'boek-kaart-auteur';
+      auteur.textContent = boek.auteur || '';
+      body.appendChild(auteur);
+
+      const badge = document.createElement('span');
+      badge.className = `status-badge status-${boek.status}`;
+      badge.textContent = boek.status === 'beschikbaar' ? 'Beschikbaar' : 'Uitgeleend';
+      body.appendChild(badge);
+
+      kaart.appendChild(body);
+      kaart.addEventListener('click', () => openModal(boek));
+      return kaart;
+    }
+
+    function toonBoeken(boeken) {
+      const grid = document.getElementById('boekenGrid');
+      grid.innerHTML = '';
+
+      if (boeken.length === 0) {
+        const leeg = document.createElement('div');
+        leeg.className = 'laden-bericht';
+        leeg.textContent = 'Geen boeken gevonden.';
+        grid.appendChild(leeg);
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      boeken.forEach((b) => fragment.appendChild(maakBoekKaart(b)));
+      grid.appendChild(fragment);
+    }
+
+    function updateResultatenInfo(aantal, totaal) {
+      const el = document.getElementById('resultatenInfo');
+      el.textContent = aantal === totaal
+        ? `${totaal} boeken`
+        : `${aantal} van ${totaal} boeken`;
+    }
+
+    function ververs() {
+      const gefilterd = filterBoeken();
+      toonBoeken(gefilterd);
+      updateResultatenInfo(gefilterd.length, alleBoeken.length);
+    }
+
+    // ── Modal ──────────────────────────────────────────────────────
+
+    function openModal(boek) {
+      huidigBoek = boek;
+      const inhoud = document.getElementById('modalInhoud');
+      inhoud.innerHTML = '';
+
+      const boekInfo = document.createElement('div');
+      boekInfo.className = 'modal-boek-info';
+
+      if (boek.cover_url) {
+        const img = document.createElement('img');
+        img.className = 'modal-cover';
+        img.alt = '';
+        img.onerror = () => {
+          const ph = document.createElement('div');
+          ph.className = 'modal-cover-ph';
+          ph.textContent = '📗';
+          img.replaceWith(ph);
+        };
+        img.src = boek.cover_url;
+        boekInfo.appendChild(img);
+      } else {
+        const ph = document.createElement('div');
+        ph.className = 'modal-cover-ph';
+        ph.textContent = '📗';
+        boekInfo.appendChild(ph);
+      }
+
+      const tekst = document.createElement('div');
+
+      const titel = document.createElement('div');
+      titel.className = 'modal-titel';
+      titel.textContent = boek.titel;
+      tekst.appendChild(titel);
+
+      if (boek.subtitel) {
+        const subtitel = document.createElement('div');
+        subtitel.className = 'modal-subtitel';
+        subtitel.textContent = boek.subtitel;
+        tekst.appendChild(subtitel);
+      }
+
+      if (boek.auteur) {
+        const auteur = document.createElement('div');
+        auteur.className = 'modal-auteur';
+        auteur.textContent = boek.auteur;
+        tekst.appendChild(auteur);
+      }
+
+      const meta = document.createElement('div');
+      meta.className = 'modal-meta';
+
+      const metaItems = [
+        boek.jaar ? `Jaar: ${boek.jaar}` : null,
+        boek.subcategorie ? `Categorie: ${boek.subcategorie}` : null,
+        boek.code ? `Code: ${boek.code}` : null,
+      ].filter(Boolean);
+
+      metaItems.forEach((item) => {
+        const regel = document.createElement('div');
+        regel.textContent = item;
+        meta.appendChild(regel);
+      });
+
+      const badgeWrap = document.createElement('div');
+      badgeWrap.style.marginTop = '8px';
+      const badge = document.createElement('span');
+      badge.className = `status-badge status-${boek.status}`;
+      badge.textContent = boek.status === 'beschikbaar' ? 'Beschikbaar' : 'Uitgeleend';
+      badgeWrap.appendChild(badge);
+      meta.appendChild(badgeWrap);
+
+      tekst.appendChild(meta);
+      boekInfo.appendChild(tekst);
+      inhoud.appendChild(boekInfo);
+
+      // Actieknop
+      const acties = document.createElement('div');
+      acties.className = 'modal-acties';
+
+      const lenLink = document.createElement('a');
+      lenLink.className = 'knop-lenen';
+      lenLink.href = `lenen.html?id=${encodeURIComponent(boek.id)}`;
+      lenLink.textContent = boek.status === 'beschikbaar' ? 'Boek lenen →' : 'Boek inleveren →';
+      acties.appendChild(lenLink);
+
+      inhoud.appendChild(acties);
+
+      document.getElementById('modalOverlay').classList.add('open');
+    }
+
+    function sluitModal() {
+      document.getElementById('modalOverlay').classList.remove('open');
+      huidigBoek = null;
+    }
+
+    // ── Subcategorie dropdown updaten ──────────────────────────────
+
+    function updateSubcatDropdown(cat) {
+      const select = document.getElementById('subcatFilter');
+      select.innerHTML = '';
+
+      const defaultOpt = document.createElement('option');
+      defaultOpt.value = '';
+      defaultOpt.textContent = 'Alle subcategorieën';
+      select.appendChild(defaultOpt);
+
+      if (cat && SUBCATS[cat]) {
+        SUBCATS[cat].forEach((sub) => {
+          const opt = document.createElement('option');
+          opt.value = sub;
+          opt.textContent = sub;
+          select.appendChild(opt);
+        });
+        select.disabled = false;
+      } else {
+        select.disabled = true;
+      }
+    }
+
+    // ── Event listeners ────────────────────────────────────────────
+
+    document.getElementById('zoekInput').addEventListener('input', ververs);
+
+    document.getElementById('catFilter').addEventListener('change', (e) => {
+      updateSubcatDropdown(e.target.value);
+      ververs();
+    });
+
+    document.getElementById('subcatFilter').addEventListener('change', ververs);
+
+    document.querySelectorAll('.status-knop').forEach((knop) => {
+      knop.addEventListener('click', () => {
+        document.querySelectorAll('.status-knop').forEach((k) => k.classList.remove('actief'));
+        knop.classList.add('actief');
+        statusFilter = knop.dataset.status;
+        ververs();
+      });
+    });
+
+    document.getElementById('modalSluit').addEventListener('click', sluitModal);
+
+    document.getElementById('modalOverlay').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('modalOverlay')) sluitModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') sluitModal();
+    });
+
+    // ── Opstarten ─────────────────────────────────────────────────
+
+    async function init() {
+      try {
+        alleBoeken = await laadAlleBoeken();
+        ververs();
+      } catch (err) {
+        console.error(err);
+        const grid = document.getElementById('boekenGrid');
+        grid.innerHTML = '';
+        const fout = document.createElement('div');
+        fout.className = 'laden-bericht';
+        fout.textContent = 'Kan de catalogus niet laden. Probeer de pagina te vernieuwen.';
+        grid.appendChild(fout);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

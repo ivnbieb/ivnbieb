@@ -1,0 +1,11 @@
+{
+  "name": "ivnbieb",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "covers": "node scripts/fetch_covers.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0"
+  }
+}
