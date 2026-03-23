@@ -61,7 +61,7 @@ export default async function handler(req, res) {
       }
       const data = await pageRes.json();
       boeken.push(...data.results);
-      url = data.next || null;
+      url = data.next ? data.next.replace('http://', 'https://') : null;
     }
 
     res.status(200).json({ boeken });
