@@ -49,7 +49,7 @@ async function haalCoverUrl(isbn) {
 // Haal alle boeken op uit Baserow (gepagineerd)
 async function haalAlleBoeken() {
   const boeken = [];
-  let url = `${BASEROW_API}/database/rows/table/${TABLE_BOEKEN}/?size=100`;
+  let url = `${BASEROW_API}/database/rows/table/${TABLE_BOEKEN}/?size=100&user_field_names=true`;
 
   while (url) {
     const res = await fetch(url, {
@@ -61,7 +61,7 @@ async function haalAlleBoeken() {
     }
     const data = await res.json();
     boeken.push(...data.results);
-    url = data.next || null;
+    url = data.next ? data.next.replace('http://', 'https://') : null;
   }
 
   return boeken;
@@ -69,7 +69,7 @@ async function haalAlleBoeken() {
 
 // Sla cover URL op in Baserow
 async function slaOpInBaserow(boekId, coverUrl) {
-  const res = await fetch(`${BASEROW_API}/database/rows/table/${TABLE_BOEKEN}/${boekId}/`, {
+  const res = await fetch(`${BASEROW_API}/database/rows/table/${TABLE_BOEKEN}/${boekId}/?user_field_names=true`, {
     method: 'PATCH',
     headers: {
       Authorization: `Token ${TOKEN}`,
